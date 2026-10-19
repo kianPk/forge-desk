@@ -1,0 +1,15 @@
+{
+  "name": "forge-desk",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Forge Desk — Vue 3 workspace + Node.js API with JWT and realtime presence",
+  "scripts": {
+    "dev:client": "npm run dev --prefix client",
+    "dev:server": "node server/index.js",
+    "build": "npm run build --prefix client",
+    "start": "node server/index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
