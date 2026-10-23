@@ -20,12 +20,20 @@ export const state = reactive({
   issues: [],
   team: [],
   presence: [],
+  activity: [],
+  labelFilter: localStorage.getItem('forge_desk_label') || '',
+  priorityFilter: localStorage.getItem('forge_desk_priority') || '',
   activeProjectId: null,
   selectedIssueId: null,
   loading: false,
   toast: null,
   socket: null,
 })
+
+function pushActivity(text) {
+  state.activity.unshift({ id: 'a_' + Date.now(), text, at: Date.now() })
+  if (state.activity.length > 40) state.activity.length = 40
+}
 
 export function toast(msg, type = 'info') {
   state.toast = { msg, type, id: Date.now() }
@@ -130,7 +138,13 @@ export async function updateIssue(id, patch) {
   const idx = state.issues.findIndex((i) => i.id === id)
   if (idx < 0) return
   if (state.mode === 'demo' || !state.token) {
-    state.issues[idx] = { ...state.issues[idx], ...patch, updatedAt: Date.now() }
+    const before = state.issues[idx]
+    state.issues[idx] = { ...before, ...patch, updatedAt: Date.now() }
+    if (patch.status && patch.status !== before.status) {
+      pushActivity(`${before.key} → ${patch.status}`)
+    } else {
+      pushActivity(`${before.key} updated`)
+    }
     toast('Issue updated')
     return state.issues[idx]
   }
@@ -139,6 +153,7 @@ export async function updateIssue(id, patch) {
     body: JSON.stringify(patch),
   })
   state.issues[idx] = data.issue
+  pushActivity(`${data.issue.key} updated`)
   return data.issue
 }
 
@@ -156,6 +171,7 @@ export async function createIssue(payload) {
       ...payload,
     }
     state.issues.unshift(issue)
+    pushActivity(`created ${issue.key}`)
     toast('Issue created')
     return issue
   }
@@ -164,7 +180,20 @@ export async function createIssue(payload) {
     body: JSON.stringify(payload),
   })
   state.issues.unshift(data.issue)
+  pushActivity(`created ${data.issue.key}`)
   return data.issue
+}
+
+export function setLabelFilter(label) {
+  state.labelFilter = label || ''
+  if (label) localStorage.setItem('forge_desk_label', label)
+  else localStorage.removeItem('forge_desk_label')
+}
+
+export function setPriorityFilter(priority) {
+  state.priorityFilter = priority || ''
+  if (priority) localStorage.setItem('forge_desk_priority', priority)
+  else localStorage.removeItem('forge_desk_priority')
 }
 
 export function logout() {

@@ -9,6 +9,8 @@ import {
   updateIssue,
   createIssue,
   logout,
+  setLabelFilter,
+  setPriorityFilter,
 } from '../store'
 import { COLUMNS } from '../demoData'
 import BoardColumn from '../components/BoardColumn.vue'
@@ -21,6 +23,14 @@ const newTitle = ref('')
 const mobileNav = ref(false)
 
 const project = computed(() => projectById(state.activeProjectId))
+const allLabels = computed(() => {
+  const set = new Set()
+  for (const i of issuesForProject(state.activeProjectId)) {
+    for (const l of i.labels || []) set.add(l)
+  }
+  return [...set].sort()
+})
+
 const issues = computed(() => {
   let list = issuesForProject(state.activeProjectId)
   const q = query.value.trim().toLowerCase()
@@ -29,8 +39,15 @@ const issues = computed(() => {
       (i) =>
         i.title.toLowerCase().includes(q) ||
         i.key.toLowerCase().includes(q) ||
-        (i.body || '').toLowerCase().includes(q),
+        (i.body || '').toLowerCase().includes(q) ||
+        (i.labels || []).some((l) => l.toLowerCase().includes(q)),
     )
+  }
+  if (state.labelFilter) {
+    list = list.filter((i) => (i.labels || []).includes(state.labelFilter))
+  }
+  if (state.priorityFilter) {
+    list = list.filter((i) => i.priority === state.priorityFilter)
   }
   return list
 })
@@ -170,9 +187,23 @@ function onLogout() {
 
       <div class="toolbar">
         <input v-model="query" class="search" type="search" placeholder="Search issues…" />
+        <select class="search" :value="state.labelFilter" @change="setLabelFilter($event.target.value)">
+          <option value="">All labels</option>
+          <option v-for="l in allLabels" :key="l" :value="l">{{ l }}</option>
+        </select>
+        <select class="search" :value="state.priorityFilter" @change="setPriorityFilter($event.target.value)">
+          <option value="">All priorities</option>
+          <option value="high">high</option>
+          <option value="medium">medium</option>
+          <option value="low">low</option>
+        </select>
         <button class="primary" type="button" @click="composing = !composing">
           {{ composing ? 'Cancel' : 'New issue' }}
         </button>
+      </div>
+      <div v-if="state.activity.length" class="activity">
+        <strong>Activity</strong>
+        <span v-for="a in state.activity.slice(0, 5)" :key="a.id">{{ a.text }}</span>
       </div>
 
       <form v-if="composing" class="compose" @submit.prevent="addIssue">
@@ -446,13 +477,27 @@ function onLogout() {
 }
 .search {
   flex: 1;
-  min-width: 180px;
+  min-width: 140px;
   padding: 11px 14px;
   border-radius: 10px;
   border: 1px solid var(--line);
   background: var(--bg-panel);
   outline: none;
 }
+.activity {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  align-items: center;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg-panel) 88%, transparent);
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.activity strong { color: var(--ink); margin-right: 4px; }
 .search:focus {
   border-color: color-mix(in srgb, var(--amber) 45%, var(--line));
   box-shadow: 0 0 0 3px var(--amber-glow);

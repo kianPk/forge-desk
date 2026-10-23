@@ -76,3 +76,7 @@ Realtime events: `presence:sync`, `issue:created`, `issue:updated`.
 ## Author
 
 [kianPk](https://github.com/kianPk) · Vue & Node backends
+
+## Features
+
+- Saved label/priority filters and an activity feed for board moves
