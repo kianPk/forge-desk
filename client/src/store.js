@@ -3,6 +3,31 @@ import { DEMO_USER, DEMO_TEAM, DEMO_PROJECTS, createDemoIssues } from './demoDat
 
 const TOKEN_KEY = 'forge_desk_token'
 const MODE_KEY = 'forge_desk_mode'
+const COMMENTS_KEY = 'forge_desk_issue_comments'
+
+function loadCommentMap() {
+  try {
+    return JSON.parse(localStorage.getItem(COMMENTS_KEY) || '{}')
+  } catch {
+    return {}
+  }
+}
+
+function persistComments() {
+  const map = {}
+  for (const i of state.issues) {
+    if (i.comments?.length) map[i.id] = i.comments
+  }
+  localStorage.setItem(COMMENTS_KEY, JSON.stringify(map))
+}
+
+function hydrateIssueComments() {
+  const map = loadCommentMap()
+  for (const issue of state.issues) {
+    if (map[issue.id]?.length) issue.comments = map[issue.id]
+    else if (!issue.comments) issue.comments = []
+  }
+}
 
 function detectLiveApi() {
   // Live API only when explicitly configured or same-origin proxy in dev
@@ -73,6 +98,7 @@ export async function bootstrapDemo() {
     { id: 'u_sara', name: 'Sara N.', projectId: 'p_alpha', since: Date.now() - 60000 },
   ]
   state.activeProjectId = state.projects[0]?.id || null
+  hydrateIssueComments()
   setMode('demo')
 }
 
@@ -165,6 +191,7 @@ export async function createIssue(payload) {
       id: 'i_' + Date.now(),
       key: `${project?.key || 'FD'}-${count}`,
       labels: [],
+      comments: [],
       createdAt: Date.now(),
       updatedAt: Date.now(),
       assigneeId: state.user?.id,
@@ -188,6 +215,27 @@ export function setLabelFilter(label) {
   state.labelFilter = label || ''
   if (label) localStorage.setItem('forge_desk_label', label)
   else localStorage.removeItem('forge_desk_label')
+}
+
+export function addIssueComment(issueId, body) {
+  const text = (body || '').trim()
+  if (!text) return null
+  const issue = state.issues.find((i) => i.id === issueId)
+  if (!issue) return null
+  if (!issue.comments) issue.comments = []
+  const author = state.user?.name || 'You'
+  const comment = {
+    id: 'c_' + Date.now(),
+    author,
+    body: text,
+    at: Date.now(),
+  }
+  issue.comments.push(comment)
+  issue.updatedAt = Date.now()
+  pushActivity(`comment on ${issue.key}`)
+  if (state.mode === 'demo' || !state.token) persistComments()
+  toast('Comment added')
+  return comment
 }
 
 export function setPriorityFilter(priority) {
@@ -216,4 +264,5 @@ if (state.mode === 'demo' && !state.user) {
     { id: 'u_sara', name: 'Sara N.', projectId: 'p_alpha', since: Date.now() - 60000 },
   ]
   state.activeProjectId = state.projects[0]?.id || null
+  hydrateIssueComments()
 }

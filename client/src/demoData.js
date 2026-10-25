@@ -44,7 +44,7 @@ export const DEMO_PROJECTS = [
 ]
 
 let _n = 0
-function issue(projectId, key, title, status, priority, assigneeId, body, labels = []) {
+function issue(projectId, key, title, status, priority, assigneeId, body, labels = [], comments = []) {
   _n += 1
   return {
     id: 'i_' + _n,
@@ -56,6 +56,7 @@ function issue(projectId, key, title, status, priority, assigneeId, body, labels
     priority,
     assigneeId,
     labels,
+    comments,
     createdAt: Date.now() - Math.random() * 86400000 * 14,
     updatedAt: Date.now() - Math.random() * 86400000 * 3,
   }
@@ -63,7 +64,24 @@ function issue(projectId, key, title, status, priority, assigneeId, body, labels
 
 export function createDemoIssues() {
   return [
-    issue('p_alpha', 'ALP-1', 'Design workspace shell', 'done', 'high', 'u_kian', 'Sidebar, board, and issue drawer', ['design']),
+    issue(
+      'p_alpha',
+      'ALP-1',
+      'Design workspace shell',
+      'done',
+      'high',
+      'u_kian',
+      'Sidebar, board, and issue drawer',
+      ['design'],
+      [
+        {
+          id: 'c_seed_1',
+          author: 'Sara N.',
+          body: 'Drawer layout feels good on 1440px — mobile next.',
+          at: Date.now() - 86400000 * 2,
+        },
+      ],
+    ),
     issue('p_alpha', 'ALP-2', 'Realtime presence dots', 'done', 'medium', 'u_kian', 'Socket.IO presence channel', ['realtime']),
     issue('p_alpha', 'ALP-3', 'Kanban drag & drop', 'in_progress', 'high', 'u_sara', 'Move cards across columns', ['ux']),
     issue('p_alpha', 'ALP-4', 'JWT auth + session story', 'in_progress', 'high', 'u_kian', 'Login, register, protected routes', ['auth']),

@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { COLUMNS } from '../demoData'
+import { addIssueComment } from '../store'
 
 const props = defineProps({
   issue: { type: Object, required: true },
@@ -15,6 +16,19 @@ const body = ref(props.issue.body || '')
 const status = ref(props.issue.status)
 const priority = ref(props.issue.priority)
 const assigneeId = ref(props.issue.assigneeId || '')
+const commentDraft = ref('')
+
+const comments = computed(() => props.issue.comments || [])
+
+function formatAt(ts) {
+  const d = new Date(ts)
+  return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+}
+
+function submitComment() {
+  const c = addIssueComment(props.issue.id, commentDraft.value)
+  if (c) commentDraft.value = ''
+}
 
 watch(
   () => props.issue.id,
@@ -84,6 +98,27 @@ function save() {
           </select>
         </label>
       </div>
+
+      <section class="comments">
+        <h3>Activity</h3>
+        <ul v-if="comments.length">
+          <li v-for="c in comments" :key="c.id">
+            <div class="c-head">
+              <strong>{{ c.author }}</strong>
+              <time>{{ formatAt(c.at) }}</time>
+            </div>
+            <p>{{ c.body }}</p>
+          </li>
+        </ul>
+        <p v-else class="empty-c">No comments yet.</p>
+        <label class="comment-form">
+          <span>Add comment</span>
+          <textarea v-model="commentDraft" rows="3" placeholder="Leave a note for the team…" />
+        </label>
+        <button type="button" class="comment-btn" :disabled="!commentDraft.trim()" @click="submitComment">
+          Post comment
+        </button>
+      </section>
 
       <footer>
         <button type="button" class="ghost" @click="emit('close')">Close</button>
@@ -206,6 +241,72 @@ select {
   border: 1px solid var(--line);
   background: var(--bg);
   outline: none;
+}
+.comments {
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+  display: grid;
+  gap: 10px;
+  max-height: 220px;
+  overflow: auto;
+}
+.comments h3 {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--faint);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.comments ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.c-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.8rem;
+}
+.c-head time {
+  color: var(--faint);
+  font-size: 0.72rem;
+}
+.comments li p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+.empty-c {
+  margin: 0;
+  color: var(--faint);
+  font-size: 0.85rem;
+}
+.comment-form textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  resize: vertical;
+  outline: none;
+  line-height: 1.45;
+}
+.comment-btn {
+  justify-self: start;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-weight: 600;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  color: var(--text);
+}
+.comment-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 footer {
   margin-top: auto;
